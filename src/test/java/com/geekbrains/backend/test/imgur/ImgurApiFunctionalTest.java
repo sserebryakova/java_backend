@@ -1,76 +1,65 @@
 package com.geekbrains.backend.test.imgur;
 
 
-import com.geekbrains.backend.test.FunctionalTest;
-import io.restassured.RestAssured;
-import org.junit.jupiter.api.*;
-
-import java.util.Properties;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class ImgurApiFunctionalTest extends FunctionalTest {
+public class ImgurApiFunctionalTest extends ImgurApiAbstractTest {
 
-    private static String TOKEN;
-    private static Properties properties;
-
-    @BeforeAll
-    static void beforeAll() throws Exception {
-        Properties properties = readProperties();
-        RestAssured.baseURI = properties.getProperty("imgur-api-url");
-        TOKEN = properties.getProperty("imgur-api-token");
-    }
+    private static String CURRENT_IMAGE_ID;
+    private final String USER_NAME = "sserebryakova";
 
     @Test
     @Order(1)
     void getAccountBase() {
-        String userName = "sserebryakova";
         given()
-                .auth()
-                .oauth2(TOKEN)
+                .spec(requestSpecification)
                 .log()
                 .all()
                 .expect()
-                .body("data.id", is(157951961))
+                .spec(responseSpecification)
+                .body("data.id", is (157951961))
                 .log()
                 .all()
                 .when()
-                .get("account/" + userName);
+                .get("account/" + USER_NAME);
     }
 
     @Test
     @Order(2)
     void getAccountGalleryProfile() {
-        String userName = "sserebryakova";
         given()
-                .auth()
-                .oauth2(TOKEN)
+                .spec(requestSpecification)
                 .log()
                 .all()
                 .expect()
+                .spec(responseSpecification)
                 .body("data.account_url", is("sserebryakova"))
                 .body("data.email", is("sserebryakova@yandex.ru"))
-                .body("success", is(true))
                 .log()
                 .all()
                 .when()
-                .get("account/" + userName + "/" + "settings");
+                .get("account/" + USER_NAME + "/" + "settings");
     }
 
     @Test
     @Order(3)
     void postImage() {
-        given()
-                .auth()
-                .oauth2(TOKEN)
+        CURRENT_IMAGE_ID = given()
+                .spec(requestSpecification)
                 .multiPart("image", getFileResource("puppy.jpg"))
                 .formParam("name", "Picture")
                 .formParam("title", "The best picture!")
                 .log()
                 .all()
                 .expect()
+                .spec(responseSpecification)
                 .body("data.size", is(6399))
                 .body("data.type", is("image/jpeg"))
                 .body("data.name", is("Picture"))
@@ -87,88 +76,69 @@ public class ImgurApiFunctionalTest extends FunctionalTest {
     @Test
     @Order(4)
     void postUpdateImageInformation() {
-        String imageHash = "xSFt7hd";
         given()
-                .auth()
-                .oauth2(TOKEN)
-                .formParam("imageHash", "xSFt7hd")
+                .spec(requestSpecification)
                 .formParam("description", "puppy")
                 .formParam("title", "Puppy!")
                 .log()
                 .all()
                 .expect()
+                .spec(responseSpecification)
                 .body("data", is(true))
-                .body("success", is(true))
                 .log()
                 .all()
                 .when()
-                .post("image/" + imageHash)
-                .body()
-                .jsonPath()
-                .getString("data");
+                .post("image/" + CURRENT_IMAGE_ID);
     }
 
     @Test
     @Order(5)
     void getImage() {
-        String imageHash = "xSFt7hd";
         given()
-                .auth()
-                .oauth2(TOKEN)
+                .spec(requestSpecification)
                 .log()
                 .all()
                 .expect()
+                .spec(responseSpecification)
                 .body("data.title", is("Puppy!"))
                 .body("data.description", is("puppy"))
                 .body("data.type", is("image/jpeg"))
-                .body("data.size", is(152140))
+                .body("data.size", is(6399))
                 .log()
                 .all()
                 .when()
-                .get("image/" + imageHash);
+                .get("image/" + CURRENT_IMAGE_ID);
     }
 
     @Test
     @Order(6)
     void postFavoriteAnImage() {
-        String imageHash = "xSFt7hd";
         given()
-                .auth()
-                .oauth2(TOKEN)
-                .formParam("imageHash", "xSFt7hd")
+                .spec(requestSpecification)
                 .log()
                 .all()
                 .expect()
+                .spec(responseSpecification)
                 .body("data", is("favorited"))
-                .body("success", is(true))
                 .log()
                 .all()
                 .when()
-                .post("image/" + imageHash + "/" + "favorite")
-                .body()
-                .jsonPath()
-                .getString("data");
+                .post("image/" + CURRENT_IMAGE_ID + "/" + "favorite");
     }
 
     @Test
     @Order(7)
     void delImage() {
-        String imageHash = "xSFt7hd";
         given()
-                .auth()
-                .oauth2(TOKEN)
-                .formParam("imageHash", "xSFt7hd")
+                .spec(requestSpecification)
                 .log()
                 .all()
                 .expect()
+                .spec(responseSpecification)
                 .body("data", is(true))
-                .body("success", is(true))
                 .log()
                 .all()
                 .when()
-                .post("image/" + imageHash)
-                .body()
-                .jsonPath()
-                .getString("data");
+                .delete("image/" + CURRENT_IMAGE_ID);
     }
 }
